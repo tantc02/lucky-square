@@ -1,0 +1,14 @@
+{
+  "/play/page": "app/play/page.js",
+  "/admin/page": "app/admin/page.js",
+  "/admin/dashboard/page": "app/admin/dashboard/page.js",
+  "/admin/boxes/page": "app/admin/boxes/page.js",
+  "/api/auth/admin/route": "app/api/auth/admin/route.js",
+  "/api/results/route": "app/api/results/route.js",
+  "/api/questions/route": "app/api/questions/route.js",
+  "/api/auth/player/route": "app/api/auth/player/route.js",
+  "/page": "app/page.js",
+  "/admin/questions/page": "app/admin/questions/page.js",
+  "/api/dice/route": "app/api/dice/route.js",
+  "/api/boxes/route": "app/api/boxes/route.js"
+}

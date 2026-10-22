@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model AdminConfig {
+  id                 Int      @id @default(1)
+  adminPasswordHash  String
+  playerPasswordHash String
+  unluckyCount       Int      @default(3) // Số lượng ô "Chúc bạn may mắn lần sau"
+  diceCount          Int      @default(0) // Số lượng ô "Lắc xí ngầu"
+  updatedAt          DateTime @updatedAt
+}
+
+model MysteryBoxState {
+  id         Int      @id @default(autoincrement())
+  boxIndex   Int      @unique
+  boxType    String   // "question" | "unlucky" | "dice"
+  questionId Int?
+  isOpened   Boolean  @default(false)
+  openedBy   String?
+  openedAt   DateTime?
+}
+
+model DiceOption {
+  id          Int     @id @default(autoincrement())
+  label       String
+  emoji       String  @default("🎲")
+  description String  @default("")
+  isActive    Boolean @default(true)
+}
+
+model Question {
+  id           Int     @id @default(autoincrement())
+  questionText String
+  answerText   String
+  category     String  @default("general")
+  isActive     Boolean @default(true)
+}
+
+model GameResult {
+  id          Int      @id @default(autoincrement())
+  playerName  String
+  gameType    String   // "box" | "dice"
+  resultLabel String
+  resultMeta  String   @default("") // JSON string for extra data
+  createdAt   DateTime @default(now())
+}
