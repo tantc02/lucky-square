@@ -154,6 +154,15 @@ function PlayContent() {
     }
   }
 
+  const requestDiceOutcome = async (): Promise<DiceOptionItem> => {
+    const response = await fetch('/api/dice/roll', { method: 'POST' })
+    const data = await response.json()
+    if (!response.ok) {
+      throw new Error(data.error || 'Không thể lắc xí ngầu. Vui lòng thử lại.')
+    }
+    return data as DiceOptionItem
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
       {/* Top Header */}
@@ -235,6 +244,7 @@ function PlayContent() {
             ) : (
               <DiceRoller
                 options={diceOptions}
+                onRollRequest={requestDiceOutcome}
                 onRollEnd={handleDiceEnd}
                 isRolling={isRolling}
                 setIsRolling={setIsRolling}

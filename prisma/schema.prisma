@@ -32,6 +32,7 @@ model DiceOption {
   emoji       String  @default("🎲")
   description String  @default("")
   isActive    Boolean @default(true)
+  probability  Int     @default(1)
 }
 
 model Question {

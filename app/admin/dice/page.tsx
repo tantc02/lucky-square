@@ -9,6 +9,7 @@ interface DiceOptionItem {
   emoji: string
   description: string
   isActive: boolean
+  probability: number
 }
 
 const COMMON_EMOJIS = ['🎲', '🍺', '🍻', '🎉', '🎁', '😈', '❓', '👑', '💥', '🍹', '🎯', '🔥']
@@ -25,6 +26,7 @@ export default function AdminDicePage() {
   const [isActive, setIsActive] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
+  const [savingProbabilityId, setSavingProbabilityId] = useState<number | null>(null)
 
   const fetchOptions = async () => {
     setLoading(true)
@@ -121,13 +123,42 @@ export default function AdminDicePage() {
     }
   }
 
+  const handleProbabilitySave = async (option: DiceOptionItem) => {
+    setSavingProbabilityId(option.id)
+    setMessage('')
+    try {
+      const res = await fetch('/api/dice', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: option.id, probability: option.probability }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setMessage(data.error || 'Không thể cập nhật xác suất')
+        return
+      }
+      setMessage(`Đã lưu xác suất cho “${option.label}”.`)
+      fetchOptions()
+    } catch {
+      setMessage('Không thể kết nối để lưu xác suất.')
+    } finally {
+      setSavingProbabilityId(null)
+    }
+  }
+
+  const totalActiveWeight = options.reduce((sum, option) => sum + (option.isActive ? option.probability : 0), 0)
+  const getChance = (option: DiceOptionItem) =>
+    option.isActive && totalActiveWeight > 0
+      ? `${((option.probability / totalActiveWeight) * 100).toFixed(1)}%`
+      : '—'
+
   return (
     <AdminLayout>
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight font-display">QUẢN LÝ CỤC LẮC XÍ NGẦU</h1>
           <p className="text-xs text-slate-500 mt-1">
-            Khai báo các mặt kết quả và hành động khi người chơi lắc xí ngầu
+            Khai báo mặt kết quả và trọng số xác suất. Trọng số được quy đổi thành phần trăm trên các mặt đang bật.
           </p>
         </div>
 
@@ -258,8 +289,9 @@ export default function AdminDicePage() {
                 {options.map((opt) => (
                   <div
                     key={opt.id}
-                    className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-start justify-between gap-3 group hover:border-slate-300 transition-all"
+                    className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col gap-3 group hover:border-slate-300 transition-all"
                   >
+                    <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3 min-w-0">
                       <div className="text-3xl p-2 rounded-2xl bg-white border border-slate-200 shrink-0 shadow-sm">
                         {opt.emoji}
@@ -293,6 +325,36 @@ export default function AdminDicePage() {
                         title="Xóa tùy chọn"
                       >
                         🗑️
+                      </button>
+                    </div>
+                    </div>
+                    <div className="flex items-end gap-3 border-t border-slate-200 pt-3">
+                      <label className="flex-1 text-[11px] font-semibold text-slate-600">
+                        Trọng số (0–100)
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="1"
+                          value={opt.probability}
+                          onChange={(event) => {
+                            const value = event.target.value === '' ? 0 : Number(event.target.value)
+                            setOptions((current) => current.map((item) => item.id === opt.id ? { ...item, probability: value } : item))
+                          }}
+                          className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                        />
+                      </label>
+                      <div className="min-w-[72px] text-center">
+                        <span className="block text-[10px] font-semibold uppercase text-slate-500">Xác suất</span>
+                        <span className="text-sm font-extrabold text-emerald-700">{getChance(opt)}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleProbabilitySave(opt)}
+                        disabled={savingProbabilityId === opt.id || opt.probability < 0 || opt.probability > 100}
+                        className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
+                      >
+                        {savingProbabilityId === opt.id ? 'Đang lưu…' : 'Lưu'}
                       </button>
                     </div>
                   </div>

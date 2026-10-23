@@ -13,6 +13,7 @@ export interface DiceOptionItem {
 
 interface DiceRollerProps {
   options: DiceOptionItem[]
+  onRollRequest: () => Promise<DiceOptionItem>
   onRollEnd: (result: DiceOptionItem) => void
   disabled?: boolean
   isRolling: boolean
@@ -21,6 +22,7 @@ interface DiceRollerProps {
 
 export default function DiceRoller({
   options,
+  onRollRequest,
   onRollEnd,
   disabled = false,
   isRolling,
@@ -28,6 +30,7 @@ export default function DiceRoller({
 }: DiceRollerProps) {
   const [rotation, setRotation] = useState({ x: 15, y: -25 })
   const [selectedOption, setSelectedOption] = useState<DiceOptionItem | null>(null)
+  const [rollError, setRollError] = useState('')
   const rattleIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // Dice face rotation mapping for 6 standard faces
@@ -40,20 +43,35 @@ export default function DiceRoller({
     { x: 90, y: 0 },      // Face 6 (Bottom)
   ]
 
-  const rollDice = () => {
+  const rollDice = async () => {
     if (isRolling || disabled || options.length === 0) return
 
     setIsRolling(true)
     setSelectedOption(null)
+    setRollError('')
 
     // Play rattle sound every 80ms for 1.6s
     rattleIntervalRef.current = setInterval(() => {
       sound.playDiceRattle()
     }, 85)
 
-    // Pick random option
-    const randomIndex = Math.floor(Math.random() * options.length)
-    const winningOption = options[randomIndex]
+    let winningOption: DiceOptionItem
+    try {
+      winningOption = await onRollRequest()
+    } catch (error) {
+      if (rattleIntervalRef.current) clearInterval(rattleIntervalRef.current)
+      setIsRolling(false)
+      setRollError(error instanceof Error ? error.message : 'Không thể lắc xí ngầu. Vui lòng thử lại.')
+      return
+    }
+
+    const randomIndex = options.findIndex((option) => option.id === winningOption.id)
+    if (randomIndex < 0) {
+      if (rattleIntervalRef.current) clearInterval(rattleIntervalRef.current)
+      setIsRolling(false)
+      setRollError('Danh sách mặt xí ngầu đã thay đổi. Hãy tải lại trang.')
+      return
+    }
 
     // Choose target face mapping
     const faceIndex = randomIndex % faceRotations.length
@@ -154,6 +172,7 @@ export default function DiceRoller({
           <span>{isRolling ? 'Đang lắc xí ngầu...' : 'LẮC XÍ NGẦU NGAY'}</span>
         </button>
         <p className="text-xs text-slate-500 mt-2 font-medium">Bấm nút hoặc click trực tiếp vào cục xí ngầu</p>
+        {rollError && <p role="alert" className="mt-2 text-xs font-semibold text-rose-600">{rollError}</p>}
       </div>
 
       {/* Instant Result Card */}

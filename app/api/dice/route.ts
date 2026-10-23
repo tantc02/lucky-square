@@ -23,7 +23,7 @@ export async function GET(request: Request) {
       orderBy: { id: 'asc' },
     })
 
-    return NextResponse.json(options)
+    return NextResponse.json(options.map(({ id, label, emoji, description }) => ({ id, label, emoji, description })))
   } catch (error) {
     console.error('Fetch dice options error:', error)
     return NextResponse.json({ error: 'Không thể tải tùy chọn xúc xắc' }, { status: 500 })
@@ -68,10 +68,28 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json()
-    const { id, label, emoji, description, isActive } = body
+    const { id, label, emoji, description, isActive, probability } = body
 
     if (!id) {
       return NextResponse.json({ error: 'Thiếu ID' }, { status: 400 })
+    }
+
+    const existing = await prisma.diceOption.findUnique({ where: { id: Number(id) } })
+    if (!existing) return NextResponse.json({ error: 'Không tìm thấy tùy chọn' }, { status: 404 })
+
+    const nextProbability = probability === undefined ? existing.probability : Number(probability)
+    const nextIsActive = isActive === undefined ? existing.isActive : Boolean(isActive)
+    if (!Number.isInteger(nextProbability) || nextProbability < 0 || nextProbability > 100) {
+      return NextResponse.json({ error: 'Trọng số phải là số nguyên từ 0 đến 100' }, { status: 400 })
+    }
+
+    const activeOptions = await prisma.diceOption.findMany({ where: { isActive: true } })
+    const activeWeight = activeOptions.reduce((sum, option) => {
+      if (option.id === Number(id)) return sum + (nextIsActive ? nextProbability : 0)
+      return sum + option.probability
+    }, 0) + (!existing.isActive && nextIsActive ? nextProbability : 0)
+    if (activeWeight <= 0) {
+      return NextResponse.json({ error: 'Cần có ít nhất một mặt đang bật với trọng số lớn hơn 0' }, { status: 400 })
     }
 
     const updated = await prisma.diceOption.update({
@@ -81,6 +99,7 @@ export async function PUT(request: Request) {
         ...(emoji !== undefined ? { emoji } : {}),
         ...(description !== undefined ? { description: description.trim() } : {}),
         ...(isActive !== undefined ? { isActive: Boolean(isActive) } : {}),
+        ...(probability !== undefined ? { probability: nextProbability } : {}),
       },
     })
 
@@ -103,6 +122,18 @@ export async function DELETE(request: Request) {
 
     if (!id) {
       return NextResponse.json({ error: 'Thiếu ID' }, { status: 400 })
+    }
+
+    const option = await prisma.diceOption.findUnique({ where: { id: Number(id) } })
+    if (!option) return NextResponse.json({ error: 'Không tìm thấy tùy chọn' }, { status: 404 })
+    if (option.isActive && option.probability > 0) {
+      const remainingWeight = await prisma.diceOption.aggregate({
+        where: { isActive: true, id: { not: option.id } },
+        _sum: { probability: true },
+      })
+      if ((remainingWeight._sum.probability ?? 0) <= 0) {
+        return NextResponse.json({ error: 'Không thể xóa mặt duy nhất còn xác suất. Hãy tăng trọng số cho mặt khác trước.' }, { status: 400 })
+      }
     }
 
     await prisma.diceOption.delete({
