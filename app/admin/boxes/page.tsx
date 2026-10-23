@@ -5,7 +5,7 @@ import AdminLayout from '@/components/AdminLayout'
 
 interface BoxAdminItem {
   boxIndex: number
-  boxType: 'question' | 'unlucky' | 'dice'
+  boxType: 'question' | 'unlucky' | 'dice' | 'egg'
   questionId: number | null
   isOpened: boolean
   openedBy: string | null
@@ -16,6 +16,7 @@ export default function AdminBoxesPage() {
   const [questionsCount, setQuestionsCount] = useState(0)
   const [unluckyCount, setUnluckyCount] = useState(3)
   const [diceCount, setDiceCount] = useState(0)
+  const [eggCount, setEggCount] = useState(0)
   const [totalBoxes, setTotalBoxes] = useState(0)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -30,6 +31,7 @@ export default function AdminBoxesPage() {
         setQuestionsCount(data.questionsCount || 0)
         setUnluckyCount(data.unluckyCount ?? 3)
         setDiceCount(data.diceCount ?? 0)
+        setEggCount(data.eggCount ?? 0)
         setTotalBoxes(data.totalBoxes || 0)
         if (Array.isArray(data.boxes)) {
           setBoxes(data.boxes)
@@ -57,6 +59,7 @@ export default function AdminBoxesPage() {
         body: JSON.stringify({
           unluckyCount: Number(unluckyCount),
           diceCount: Number(diceCount),
+          eggCount: Number(eggCount),
         }),
       })
       const data = await res.json()
@@ -101,12 +104,12 @@ export default function AdminBoxesPage() {
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight font-display">QUẢN LÝ Ô VUÔNG BÍ MẬT</h1>
           <p className="text-xs text-slate-500 mt-1">
-            Tổng số ô vuông = Số câu hỏi + Số ô "May mắn lần sau" + Số ô "Lắc xí ngầu"
+            Tổng số ô vuông = Câu hỏi + May mắn lần sau + Lắc xí ngầu + Lượt đập trứng
           </p>
         </div>
 
         {/* Metric Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-3.5">
           <div className="p-4 rounded-3xl bg-white border border-slate-200 shadow-sm">
             <span className="text-[11px] text-slate-500 font-bold uppercase tracking-wider block mb-1">
               Tổng số ô
@@ -130,6 +133,12 @@ export default function AdminBoxesPage() {
               Lắc xí ngầu 🎲
             </span>
             <div className="text-2xl font-extrabold text-emerald-600">{diceCount}</div>
+          </div>
+          <div className="p-4 rounded-3xl bg-white border border-slate-200 shadow-sm">
+            <span className="text-[11px] text-amber-700 font-bold uppercase tracking-wider block mb-1">
+              Ô trúng lượt đập trứng 🥚
+            </span>
+            <div className="text-2xl font-extrabold text-amber-600">{eggCount}</div>
           </div>
           <div className="p-4 rounded-3xl bg-white border border-slate-200 shadow-sm">
             <span className="text-[11px] text-indigo-700 font-bold uppercase tracking-wider block mb-1">
@@ -185,6 +194,24 @@ export default function AdminBoxesPage() {
                 </p>
               </div>
 
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Số ô trúng lượt "Đập trứng" 🥚
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="50"
+                  value={eggCount}
+                  onChange={(e) => setEggCount(Math.max(0, parseInt(e.target.value) || 0))}
+                  required
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 font-bold text-base focus:outline-none focus:border-amber-500 focus:bg-white"
+                />
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Số ô này được thêm vào bàn chơi và chuyển người chơi sang màn hình đập trứng.
+                </p>
+              </div>
+
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-1.5 text-slate-600">
                 <div className="flex justify-between">
                   <span>Số câu hỏi hiện có:</span>
@@ -198,9 +225,13 @@ export default function AdminBoxesPage() {
                   <span>Số ô lắc xí ngầu:</span>
                   <strong className="text-emerald-700">{diceCount}</strong>
                 </div>
+                <div className="flex justify-between">
+                  <span>Số lượt đập trứng:</span>
+                  <strong className="text-amber-700">{eggCount}</strong>
+                </div>
                 <div className="flex justify-between pt-1 border-t border-slate-200 font-bold text-slate-900">
                   <span>Tổng ô hiển thị cho player:</span>
-                  <span className="text-rose-600 text-sm">{questionsCount + Number(unluckyCount) + Number(diceCount)}</span>
+                  <span className="text-rose-600 text-sm">{questionsCount + Number(unluckyCount) + Number(diceCount) + Number(eggCount)}</span>
                 </div>
               </div>
 
@@ -277,6 +308,8 @@ export default function AdminBoxesPage() {
                         className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
                           box.boxType === 'question'
                             ? 'bg-rose-100 text-rose-800'
+                            : box.boxType === 'egg'
+                            ? 'bg-amber-100 text-amber-800'
                             : box.boxType === 'dice'
                             ? 'bg-emerald-100 text-emerald-800'
                             : 'bg-amber-100 text-amber-800'
@@ -284,6 +317,8 @@ export default function AdminBoxesPage() {
                       >
                         {box.boxType === 'question'
                           ? 'Câu hỏi thử thách'
+                          : box.boxType === 'egg'
+                          ? 'Đập trứng 🥚'
                           : box.boxType === 'dice'
                           ? 'Lắc xí ngầu 🎲'
                           : 'May mắn lần sau'}

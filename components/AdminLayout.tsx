@@ -37,6 +37,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { href: '/admin/questions', label: 'Bộ Câu Hỏi & Trả Lời', icon: '❓' },
     { href: '/admin/boxes', label: 'Ô Vuông Bí Mật', icon: '🎁' },
     { href: '/admin/dice', label: 'Cục Lắc Xí Ngầu', icon: '🎲' },
+    { href: '/admin/eggs', label: 'Quà Đập Trứng', icon: '🥚' },
     { href: '/admin/settings', label: 'Cài Đặt Mật Khẩu', icon: '⚙️' },
   ]
 

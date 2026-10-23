@@ -53,6 +53,7 @@ export default function AdminDashboardPage() {
 
   const totalBoxes = results.filter((r) => r.gameType === 'box').length
   const totalDice = results.filter((r) => r.gameType === 'dice').length
+  const totalEggs = results.filter((r) => r.gameType === 'egg').length
   const uniquePlayers = new Set(results.map((r) => r.playerName)).size
 
   return (
@@ -83,7 +84,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Metric Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
           <div className="p-5 rounded-3xl bg-white border border-slate-200 shadow-sm">
             <span className="text-xs text-slate-500 font-bold uppercase tracking-wider block mb-1">
               Tổng lượt chơi
@@ -101,6 +102,12 @@ export default function AdminDashboardPage() {
               Lượt lắc xí ngầu
             </span>
             <div className="text-3xl font-extrabold text-emerald-600">{totalDice}</div>
+          </div>
+          <div className="p-5 rounded-3xl bg-white border border-slate-200 shadow-sm">
+            <span className="text-xs text-amber-700 font-bold uppercase tracking-wider block mb-1">
+              Lượt đập trứng
+            </span>
+            <div className="text-3xl font-extrabold text-amber-600">{totalEggs}</div>
           </div>
           <div className="p-5 rounded-3xl bg-white border border-slate-200 shadow-sm">
             <span className="text-xs text-cyan-700 font-bold uppercase tracking-wider block mb-1">
@@ -142,6 +149,16 @@ export default function AdminDashboardPage() {
           >
             🎲 Xí ngầu ({totalDice})
           </button>
+          <button
+            onClick={() => setFilterType('egg')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${
+              filterType === 'egg'
+                ? 'bg-amber-100 text-amber-900 border border-amber-300 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900 bg-white border border-slate-200'
+            }`}
+          >
+            🥚 Đập trứng ({totalEggs})
+          </button>
         </div>
 
         {/* Results Table */}
@@ -177,10 +194,12 @@ export default function AdminDashboardPage() {
                           className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md font-bold text-[11px] ${
                             r.gameType === 'box'
                               ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                            : r.gameType === 'egg'
+                              ? 'bg-amber-100 text-amber-800 border border-amber-200'
                               : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                           }`}
                         >
-                          {r.gameType === 'box' ? '🎁 Ô vuông' : '🎲 Xí ngầu'}
+                          {r.gameType === 'box' ? '🎁 Ô vuông' : r.gameType === 'egg' ? '🥚 Đập trứng' : '🎲 Xí ngầu'}
                         </span>
                       </td>
                       <td className="py-3.5 px-4 font-semibold text-slate-900">

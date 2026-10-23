@@ -46,6 +46,45 @@
 .face-5 { transform: rotateX(90deg) translateZ(60px); }
 .face-6 { transform: rotateX(-90deg) translateZ(60px); }
 
+.egg-shake {
+  animation: egg-shake 0.18s ease-in-out infinite alternate;
+}
+.egg-half-left,
+.egg-half-right {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.egg-half-left { clip-path: inset(0 48% 0 0); }
+.egg-half-right { clip-path: inset(0 0 0 48%); }
+.egg-half-left:not(.egg-half-open) { animation: egg-crack-left 0.45s ease-out 0.85s both; }
+.egg-half-right:not(.egg-half-open) { animation: egg-crack-right 0.45s ease-out 0.85s both; }
+.egg-half-open.egg-half-left { transform: translate(-9px, -4px) rotate(-18deg); }
+.egg-half-open.egg-half-right { transform: translate(9px, 4px) rotate(18deg); }
+.egg-prize-popup { animation: egg-popup 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.egg-screen-flash { border: 12px solid #f59e0b; animation: egg-screen-flash 0.7s ease-out both; }
+
+@keyframes egg-shake {
+  from { transform: rotate(-9deg) translateX(-3px); }
+  to { transform: rotate(9deg) translateX(3px); }
+}
+@keyframes egg-crack-left {
+  to { transform: translate(-12px, -8px) rotate(-25deg); opacity: 0.8; }
+}
+@keyframes egg-crack-right {
+  to { transform: translate(12px, 8px) rotate(25deg); opacity: 0.8; }
+}
+@keyframes egg-popup {
+  from { transform: scale(0.8) translateY(12px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+@keyframes egg-screen-flash {
+  0%, 100% { opacity: 0; }
+  20%, 50% { opacity: 1; }
+}
+
 /* Custom light scrollbars */
 ::-webkit-scrollbar {
   width: 6px;

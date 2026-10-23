@@ -5,13 +5,14 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import MysteryBoxes, { BoxItem } from '@/components/MysteryBoxes'
 import DiceRoller, { DiceOptionItem } from '@/components/DiceRoller'
+import EggSmashGame from '@/components/EggSmashGame'
 
 function PlayContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
   const [playerName, setPlayerName] = useState<string>('')
-  const [mode, setMode] = useState<'boxes' | 'dice'>('boxes')
+  const [mode, setMode] = useState<'boxes' | 'dice' | 'eggs'>('boxes')
 
   // Mystery Box state
   const [boxes, setBoxes] = useState<BoxItem[]>([])
@@ -20,11 +21,12 @@ function PlayContent() {
   // Dice state
   const [diceOptions, setDiceOptions] = useState<DiceOptionItem[]>([])
   const [isRolling, setIsRolling] = useState(false)
+  const [isSmashingEgg, setIsSmashingEgg] = useState(false)
 
   // Result popup state
   const [lastResult, setLastResult] = useState<{
     gameType: 'box' | 'dice'
-    boxType?: 'question' | 'unlucky' | 'dice'
+    boxType?: 'question' | 'unlucky' | 'dice' | 'egg'
     label: string
     question?: {
       id: number
@@ -97,7 +99,7 @@ function PlayContent() {
   // Handle Box Opened callback
   const handleBoxOpened = (res: {
     boxIndex: number
-    boxType: 'question' | 'unlucky' | 'dice'
+    boxType: 'question' | 'unlucky' | 'dice' | 'egg'
     resultLabel: string
     question?: {
       id: number
@@ -119,6 +121,8 @@ function PlayContent() {
     // Nếu rơi vào ô lắc xí ngầu thì mở qua tung xí ngầu luôn!
     if (res.boxType === 'dice') {
       setMode('dice')
+    } else if (res.boxType === 'egg') {
+      setMode('eggs')
     }
 
     // Refresh boxes & history
@@ -204,30 +208,42 @@ function PlayContent() {
         {/* Play Column (2 cols) */}
         <div className="lg:col-span-2 space-y-6">
           {/* Mode Switcher Tabs */}
-          <div className="flex p-1.5 bg-white rounded-2xl border border-slate-200 max-w-md mx-auto shadow-sm">
+          <div className="grid grid-cols-3 gap-1.5 p-1.5 bg-white rounded-2xl border border-slate-200 max-w-2xl mx-auto shadow-sm">
             <button
-              onClick={() => !isRunning && !isRolling && setMode('boxes')}
-              disabled={isRunning || isRolling}
-              className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${
+              onClick={() => !isRunning && !isRolling && !isSmashingEgg && setMode('boxes')}
+              disabled={isRunning || isRolling || isSmashingEgg}
+              className={`py-2.5 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1 sm:gap-2 transition-all ${
                 mode === 'boxes'
                   ? 'bg-gradient-to-r from-rose-600 to-red-500 text-white shadow-md shadow-red-500/20'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
               }`}
             >
               <span className="text-lg">🎁</span>
-              <span>Ô VUÔNG BÍ MẬT</span>
+              <span>Ô VUÔNG</span>
             </button>
             <button
-              onClick={() => !isRunning && !isRolling && setMode('dice')}
-              disabled={isRunning || isRolling}
-              className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${
+              onClick={() => !isRunning && !isRolling && !isSmashingEgg && setMode('dice')}
+              disabled={isRunning || isRolling || isSmashingEgg}
+              className={`py-2.5 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1 sm:gap-2 transition-all ${
                 mode === 'dice'
                   ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/20'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
               }`}
             >
               <span className="text-lg">🎲</span>
-              <span>LẮC XÍ NGẦU</span>
+              <span>XÍ NGẦU</span>
+            </button>
+            <button
+              onClick={() => !isRunning && !isRolling && !isSmashingEgg && setMode('eggs')}
+              disabled={isRunning || isRolling || isSmashingEgg}
+              className={`rounded-xl px-2 sm:px-3 py-2.5 text-xs sm:text-sm font-bold transition-all ${
+                mode === 'eggs'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-md shadow-amber-500/20'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              } disabled:opacity-60`}
+            >
+              <span className="mr-1.5 text-lg">🥚</span>
+              <span>ĐẬP TRỨNG</span>
             </button>
           </div>
 
@@ -241,13 +257,19 @@ function PlayContent() {
                 isRunning={isRunning}
                 setIsRunning={setIsRunning}
               />
-            ) : (
+            ) : mode === 'dice' ? (
               <DiceRoller
                 options={diceOptions}
                 onRollRequest={requestDiceOutcome}
                 onRollEnd={handleDiceEnd}
                 isRolling={isRolling}
                 setIsRolling={setIsRolling}
+              />
+            ) : (
+              <EggSmashGame
+                playerName={playerName}
+                onBusyChange={setIsSmashingEgg}
+                onPrizeAwarded={fetchRecentHistory}
               />
             )}
           </div>
@@ -292,7 +314,7 @@ function PlayContent() {
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <span className="text-base shrink-0">
-                        {item.gameType === 'box' ? '🎁' : '🎲'}
+                        {item.gameType === 'box' ? '🎁' : item.gameType === 'egg' ? '🥚' : '🎲'}
                       </span>
                       <div className="min-w-0">
                         <span className="font-bold text-slate-800 block truncate">
@@ -349,6 +371,14 @@ function PlayContent() {
                   <span>🎲</span>
                   <span>TUNG XÍ NGẦU NGAY</span>
                 </button>
+              </div>
+            ) : lastResult.boxType === 'egg' ? (
+              <div>
+                <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-3xl border border-amber-200 bg-amber-100 text-3xl shadow-md animate-bounce">🥚</div>
+                <span className="text-xs font-extrabold uppercase tracking-wider text-amber-700">Ô bí mật đặc biệt</span>
+                <h3 className="mt-2 mb-2 text-2xl font-black text-slate-900">TRÚNG LƯỢT ĐẬP TRỨNG! 🥚</h3>
+                <p className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-slate-600">Chọn một quả trứng để khám phá phần quà bên trong.</p>
+                <button onClick={() => setShowResultModal(false)} className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 py-3 text-sm font-extrabold text-white shadow-lg shadow-amber-500/25">ĐẬP TRỨNG NGAY</button>
               </div>
             ) : lastResult.boxType === 'unlucky' ? (
               // Unlucky outcome

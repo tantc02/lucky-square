@@ -1,19 +1,21 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAdminSession } from '@/lib/auth'
+import { ensureEggStates } from '@/lib/eggs'
 
 // Helper to initialize or re-sync mystery boxes
 async function ensureMysteryBoxes() {
   const config = await prisma.adminConfig.findFirst({ where: { id: 1 } })
   const unluckyCount = config?.unluckyCount ?? 3
   const diceCount = config?.diceCount ?? 0
+  const eggCount = config?.eggCount ?? 0
 
   const questions = await prisma.question.findMany({
     where: { isActive: true },
     orderBy: { id: 'asc' },
   })
 
-  const totalBoxes = questions.length + unluckyCount + diceCount
+  const totalBoxes = questions.length + unluckyCount + diceCount + eggCount
 
   // Check existing boxes
   const existingBoxes = await prisma.mysteryBoxState.findMany({
@@ -25,7 +27,7 @@ async function ensureMysteryBoxes() {
     await prisma.mysteryBoxState.deleteMany({})
 
     // Create array of types
-    const boxAssignments: { type: 'question' | 'unlucky' | 'dice'; questionId?: number }[] = []
+    const boxAssignments: { type: 'question' | 'unlucky' | 'dice' | 'egg'; questionId?: number }[] = []
 
     questions.forEach((q) => {
       boxAssignments.push({ type: 'question', questionId: q.id })
@@ -37,6 +39,9 @@ async function ensureMysteryBoxes() {
 
     for (let i = 0; i < diceCount; i++) {
       boxAssignments.push({ type: 'dice' })
+    }
+    for (let i = 0; i < eggCount; i++) {
+      boxAssignments.push({ type: 'egg' })
     }
 
     // Shuffle assignments
@@ -58,7 +63,7 @@ async function ensureMysteryBoxes() {
     }
   }
 
-  return { questionsCount: questions.length, unluckyCount, diceCount, totalBoxes }
+  return { questionsCount: questions.length, unluckyCount, diceCount, eggCount, totalBoxes }
 }
 
 // GET: Fetch list of boxes for player or admin
@@ -67,7 +72,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const isAdminMode = searchParams.get('admin') === 'true'
 
-    const { questionsCount, unluckyCount, diceCount, totalBoxes } = await ensureMysteryBoxes()
+    const { questionsCount, unluckyCount, diceCount, eggCount, totalBoxes } = await ensureMysteryBoxes()
 
     const boxes = await prisma.mysteryBoxState.findMany({
       orderBy: { boxIndex: 'asc' },
@@ -81,6 +86,7 @@ export async function GET(request: Request) {
           questionsCount,
           unluckyCount,
           diceCount,
+          eggCount,
           totalBoxes,
           boxes,
         })
@@ -147,6 +153,8 @@ export async function POST(request: Request) {
       resultLabel = 'Chúc bạn may mắn lần sau 🍀'
     } else if (box.boxType === 'dice') {
       resultLabel = 'Trúng ô: Lắc Xí Ngầu! 🎲'
+    } else if (box.boxType === 'egg') {
+      resultLabel = 'Trúng lượt: Đập trứng nhận quà! 🥚'
     } else {
       // Find the question
       const question = await prisma.question.findUnique({
@@ -195,7 +203,7 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json()
-    const { unluckyCount, diceCount, action } = body
+    const { unluckyCount, diceCount, eggCount, action } = body
 
     if (action === 'reset') {
       // Reset all boxes and re-shuffle
@@ -204,7 +212,10 @@ export async function PUT(request: Request) {
       return NextResponse.json({ success: true, message: 'Đã xáo và làm mới tất cả các ô!' })
     }
 
-    if (unluckyCount !== undefined || diceCount !== undefined) {
+    if (unluckyCount !== undefined || diceCount !== undefined || eggCount !== undefined) {
+      const config = await prisma.adminConfig.findUnique({ where: { id: 1 } })
+      if (!config) return NextResponse.json({ error: 'Cấu hình admin chưa được khởi tạo' }, { status: 404 })
+
       const updateData: { unluckyCount?: number; diceCount?: number } = {}
       if (unluckyCount !== undefined) {
         updateData.unluckyCount = Math.max(0, parseInt(unluckyCount) || 0)
@@ -213,16 +224,30 @@ export async function PUT(request: Request) {
         updateData.diceCount = Math.max(0, parseInt(diceCount) || 0)
       }
 
+      const parsedEggCount = eggCount === undefined ? config.eggCount : Number(eggCount)
+      if (!Number.isInteger(parsedEggCount) || parsedEggCount < 0 || parsedEggCount > 50) {
+        return NextResponse.json({ error: 'Số lượt đập trứng phải từ 0 đến 50' }, { status: 400 })
+      }
+      const nextEggCount = parsedEggCount
+      const eggsChanged = nextEggCount !== config.eggCount
+      const boxesChanged = (updateData.unluckyCount ?? config.unluckyCount) !== config.unluckyCount ||
+        (updateData.diceCount ?? config.diceCount) !== config.diceCount || eggsChanged
+
       await prisma.adminConfig.update({
         where: { id: 1 },
-        data: updateData,
+        data: { ...updateData, ...(eggCount !== undefined ? { eggCount: nextEggCount } : {}) },
       })
 
-      // Recreate boxes with new count
-      await prisma.mysteryBoxState.deleteMany({})
-      await ensureMysteryBoxes()
+      if (boxesChanged) {
+        await prisma.mysteryBoxState.deleteMany({})
+        await ensureMysteryBoxes()
+      }
+      if (eggsChanged) {
+        await prisma.eggState.deleteMany({})
+        await ensureEggStates()
+      }
 
-      return NextResponse.json({ success: true, message: 'Đã cập nhật cấu hình ô bí mật!' })
+      return NextResponse.json({ success: true, message: 'Đã cập nhật cấu hình trò chơi!' })
     }
 
     return NextResponse.json({ error: 'Không có thao tác nào' }, { status: 400 })

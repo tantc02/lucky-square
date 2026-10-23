@@ -13,6 +13,7 @@ model AdminConfig {
   playerPasswordHash String
   unluckyCount       Int      @default(3) // Số lượng ô "Chúc bạn may mắn lần sau"
   diceCount          Int      @default(0) // Số lượng ô "Lắc xí ngầu"
+  eggCount           Int      @default(0) // Số lượt đập trứng
   updatedAt          DateTime @updatedAt
 }
 
@@ -33,6 +34,22 @@ model DiceOption {
   description String  @default("")
   isActive    Boolean @default(true)
   probability  Int     @default(1)
+}
+
+model EggPrize {
+  id          Int     @id @default(autoincrement())
+  prizeName   String
+  probability Int     @default(1)
+  isActive    Boolean @default(true)
+}
+
+model EggState {
+  id         Int      @id @default(autoincrement())
+  eggIndex   Int      @unique
+  isOpened   Boolean  @default(false)
+  prizeName  String?
+  openedBy   String?
+  openedAt   DateTime?
 }
 
 model Question {

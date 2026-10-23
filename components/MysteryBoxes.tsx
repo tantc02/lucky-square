@@ -16,7 +16,7 @@ interface MysteryBoxesProps {
   playerName: string
   onBoxOpened: (result: {
     boxIndex: number
-    boxType: 'question' | 'unlucky' | 'dice'
+    boxType: 'question' | 'unlucky' | 'dice' | 'egg'
     resultLabel: string
     question?: {
       id: number
