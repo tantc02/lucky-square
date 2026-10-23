@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { upload } from '@vercel/blob/client'
 import AdminLayout from '@/components/AdminLayout'
 
 interface QuestionItem {
@@ -8,6 +9,7 @@ interface QuestionItem {
   questionText: string
   answerText: string
   isActive: boolean
+  imageUrl?: string | null
 }
 
 export default function AdminQuestionsPage() {
@@ -21,6 +23,19 @@ export default function AdminQuestionsPage() {
   const [isActive, setIsActive] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
+  const [imageUrl, setImageUrl] = useState('')
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreviewUrl, setImagePreviewUrl] = useState('')
+
+  useEffect(() => {
+    if (!imageFile) {
+      setImagePreviewUrl('')
+      return
+    }
+    const objectUrl = URL.createObjectURL(imageFile)
+    setImagePreviewUrl(objectUrl)
+    return () => URL.revokeObjectURL(objectUrl)
+  }, [imageFile])
 
   const fetchQuestions = async () => {
     setLoading(true)
@@ -46,6 +61,8 @@ export default function AdminQuestionsPage() {
     setQuestionText('')
     setAnswerText('')
     setIsActive(true)
+    setImageUrl('')
+    setImageFile(null)
   }
 
   const handleEdit = (q: QuestionItem) => {
@@ -53,6 +70,8 @@ export default function AdminQuestionsPage() {
     setQuestionText(q.questionText)
     setAnswerText(q.answerText)
     setIsActive(q.isActive)
+    setImageUrl(q.imageUrl || '')
+    setImageFile(null)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -62,6 +81,16 @@ export default function AdminQuestionsPage() {
     setSaving(true)
     setMessage('')
     try {
+      let savedImageUrl = imageUrl
+      if (imageFile) {
+        const extension = imageFile.name.split('.').pop()?.toLowerCase() || 'jpg'
+        const blob = await upload(`question-images/${crypto.randomUUID()}.${extension}`, imageFile, {
+          access: 'public',
+          handleUploadUrl: '/api/questions/upload',
+        })
+        savedImageUrl = blob.url
+      }
+
       if (editId) {
         const res = await fetch('/api/questions', {
           method: 'PUT',
@@ -71,6 +100,7 @@ export default function AdminQuestionsPage() {
             questionText,
             answerText,
             isActive,
+            imageUrl: savedImageUrl,
           }),
         })
         if (res.ok) {
@@ -86,6 +116,7 @@ export default function AdminQuestionsPage() {
             questionText,
             answerText,
             isActive,
+            imageUrl: savedImageUrl,
           }),
         })
         if (res.ok) {
@@ -142,6 +173,44 @@ export default function AdminQuestionsPage() {
                   required
                   rows={3}
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-500 focus:bg-white text-sm font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Ảnh câu hỏi <span className="normal-case font-normal text-slate-500">(JPG, PNG, WebP, GIF; tối đa 4 MB)</span>
+                </label>
+                {(imageFile || imageUrl) && (
+                  <div className="mb-2 flex items-center gap-3">
+                    <img
+                      src={imageFile ? imagePreviewUrl : imageUrl}
+                      alt="Xem trước ảnh câu hỏi"
+                      className="h-20 w-28 rounded-lg border border-slate-200 object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => { setImageFile(null); setImageUrl('') }}
+                      className="text-xs font-semibold text-rose-600 hover:text-rose-700"
+                    >
+                      Gỡ ảnh
+                    </button>
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0]
+                    if (!file) return
+                    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type) || file.size > 4 * 1024 * 1024) {
+                      setMessage('Ảnh cần là JPG, PNG, WebP hoặc GIF và không vượt quá 4 MB.')
+                      event.target.value = ''
+                      return
+                    }
+                    setMessage('')
+                    setImageFile(file)
+                  }}
+                  className="block w-full text-xs text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-3 file:py-2 file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100"
                 />
               </div>
 
@@ -225,6 +294,7 @@ export default function AdminQuestionsPage() {
                         <span className="font-bold text-sm text-slate-900 block">
                           {q.questionText}
                         </span>
+                        {q.imageUrl && <img src={q.imageUrl} alt="Ảnh câu hỏi" className="mt-2 max-h-36 rounded-xl border border-slate-200 object-contain" />}
                         {q.answerText && (
                           <p className="text-xs text-emerald-700 font-medium mt-1">
                             <strong>Đáp án:</strong> {q.answerText}

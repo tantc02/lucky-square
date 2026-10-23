@@ -8,7 +8,7 @@ interface QuestionModalProps {
 }
 
 export default function QuestionModal({ isOpen, onClose }: QuestionModalProps) {
-  const [question, setQuestion] = useState<{ questionText: string; answerText?: string; category?: string } | null>(null)
+  const [question, setQuestion] = useState<{ questionText: string; answerText?: string; category?: string; imageUrl?: string | null } | null>(null)
   const [showAnswer, setShowAnswer] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -54,6 +54,9 @@ export default function QuestionModal({ isOpen, onClose }: QuestionModalProps) {
             <p className="text-base text-slate-900 font-semibold leading-relaxed">
               {question?.questionText || 'Không có câu hỏi nào.'}
             </p>
+            {question?.imageUrl && (
+              <img src={question.imageUrl} alt="Ảnh minh họa câu hỏi" className="mt-4 max-h-64 w-full rounded-xl border border-slate-200 object-contain" />
+            )}
 
             {question?.answerText && (
               <div className="mt-4 pt-4 border-t border-slate-200">

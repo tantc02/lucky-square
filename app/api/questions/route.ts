@@ -60,6 +60,7 @@ export async function POST(request: Request) {
       data: {
         questionText: questionText.trim(),
         answerText: answerText?.trim() || '',
+        imageUrl: typeof body.imageUrl === 'string' && body.imageUrl.trim() ? body.imageUrl.trim() : null,
         category: category?.trim() || 'general',
         isActive: Boolean(isActive),
       },
@@ -91,6 +92,7 @@ export async function PUT(request: Request) {
       data: {
         ...(questionText !== undefined ? { questionText: questionText.trim() } : {}),
         ...(answerText !== undefined ? { answerText: answerText.trim() } : {}),
+        ...(body.imageUrl !== undefined ? { imageUrl: typeof body.imageUrl === 'string' && body.imageUrl.trim() ? body.imageUrl.trim() : null } : {}),
         ...(category !== undefined ? { category: category.trim() } : {}),
         ...(isActive !== undefined ? { isActive: Boolean(isActive) } : {}),
       },

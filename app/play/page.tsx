@@ -31,6 +31,7 @@ function PlayContent() {
       questionText: string
       answerText: string
       category?: string
+      imageUrl?: string | null
     } | null
     meta?: string
   } | null>(null)
@@ -103,6 +104,7 @@ function PlayContent() {
       questionText: string
       answerText: string
       category?: string
+      imageUrl?: string | null
     } | null
   }) => {
     setShowAnswer(false)
@@ -380,6 +382,9 @@ function PlayContent() {
                   <p className="text-base font-bold text-slate-900 leading-snug">
                     {lastResult.question.questionText}
                   </p>
+                  {lastResult.question.imageUrl && (
+                    <img src={lastResult.question.imageUrl} alt="Ảnh minh họa câu hỏi" className="mt-3 max-h-64 w-full rounded-xl border border-slate-200 object-contain" />
+                  )}
 
                   {lastResult.question.answerText && (
                     <div className="mt-3 pt-3 border-t border-slate-200">

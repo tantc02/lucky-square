@@ -38,6 +38,7 @@ model Question {
   id           Int     @id @default(autoincrement())
   questionText String
   answerText   String
+  imageUrl     String?
   category     String  @default("general")
   isActive     Boolean @default(true)
 }

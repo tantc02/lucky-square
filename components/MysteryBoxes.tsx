@@ -23,6 +23,7 @@ interface MysteryBoxesProps {
       questionText: string
       answerText: string
       category?: string
+      imageUrl?: string | null
     } | null
   }) => void
   disabled?: boolean
